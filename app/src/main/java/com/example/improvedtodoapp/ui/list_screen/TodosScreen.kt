@@ -1,13 +1,16 @@
 package com.example.improvedtodoapp.ui.list_screen
 
+import android.app.DatePickerDialog
 import android.graphics.Rect
 import android.view.ViewTreeObserver
+import android.widget.DatePicker
 import android.widget.Toast
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.core.animateDpAsState
 import androidx.compose.animation.core.tween
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
+import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.isSystemInDarkTheme
@@ -40,11 +43,18 @@ import androidx.compose.ui.unit.LayoutDirection
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.hilt.navigation.compose.hiltViewModel
+import com.example.improvedtodoapp.R
 import com.example.improvedtodoapp.model.Todo
+import com.example.improvedtodoapp.model.classes.Days
+import com.example.improvedtodoapp.model.classes.Keyboard
+import com.example.improvedtodoapp.model.classes.Months
 import com.example.improvedtodoapp.ui.list_screen.components.TodoItem
 import com.example.improvedtodoapp.ui.theme.AppFontTypography
 import com.example.improvedtodoapp.util.UiEvent
+import com.google.android.material.datepicker.MaterialDatePicker
 import kotlinx.coroutines.launch
+import java.text.SimpleDateFormat
+import java.util.*
 
 @OptIn(ExperimentalMaterial3Api::class, ExperimentalComposeUiApi::class)
 @Composable
@@ -56,11 +66,22 @@ fun TodosScreen(
     val snackbarHostState = remember{ SnackbarHostState() }
     val scrollState = rememberLazyListState()
     val interactionSource = remember{ MutableInteractionSource() }
+
     //Pasar esto a viewmodel
     var deleteEnabled by remember{ mutableStateOf(false) }
     val context = LocalContext.current
     val isKeyboardOpen by keyboardAsState()
     val composableCoroutine = rememberCoroutineScope()
+
+    val date = remember { mutableStateOf("") }
+
+    /*val datePickerDialog = DatePickerDialog(
+        context,
+        R.style.DatePickerTheme,
+        { _: DatePicker, year: Int, month: Int, dayOfMonth: Int ->
+            date.value = "$dayOfMonth/${month+1}/$year"
+        }, viewModel.year, viewModel.month, viewModel.dayMonth
+    )*/
 
     LaunchedEffect(key1 = true) {
         viewModel.uiEvent.collect { event ->
@@ -84,6 +105,7 @@ fun TodosScreen(
     }
 
     Scaffold(
+        modifier = Modifier.systemBarsPadding(),
         snackbarHost = { SnackbarHost(snackbarHostState) },
         floatingActionButton = {
             if(state == TodosUiState.ListOnFocus &&
@@ -97,12 +119,28 @@ fun TodosScreen(
             }
         },
         floatingActionButtonPosition = FabPosition.Center,
-        topBar = { TopAppBar() }
+        topBar = {
+            DateTopBar(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .wrapContentHeight()
+                    .clickable{
+                        viewModel.calendar.time = Date()
+                        //datePickerDialog.show()
+                    }
+                    .padding(horizontal = 20.dp),
+                dayWeek = Days.values()[viewModel.dayWeek - 1],
+                dayMonth = viewModel.dayMonth,
+                month = Months.values()[viewModel.month],
+                year = viewModel.year
+            )
+        }
     ){ paddingValues ->
         val radius by animateDpAsState(
-            if(state == TodosUiState.ListOnFocus){ 0.dp } else { 15.dp },
+            if(state == TodosUiState.ListOnFocus){ 0.dp } else { 10.dp },
             animationSpec = tween(200),
         )
+
         Box(
             modifier = Modifier
                 .fillMaxSize()
@@ -118,7 +156,7 @@ fun TodosScreen(
                 items(
                     items = todos.value,
                     key = { todo ->
-                       todo.id!!
+                        todo.id!!
                     }
                 ){ todo ->
                     TodoItem(
@@ -134,7 +172,7 @@ fun TodosScreen(
                                     snackbarHostState.currentSnackbarData?.dismiss()
                                 }
                             }
-                            .padding(vertical = 14.dp, horizontal = 22.dp)
+                            .padding(vertical = 14.dp, horizontal = 25.dp)
                     )
                 }
             }
@@ -147,6 +185,63 @@ fun TodosScreen(
             viewModel = viewModel,
             snackbarHostState = snackbarHostState,
             deleteEnabled = deleteEnabled,
+        )
+    }
+}
+
+@Composable
+fun DateTopBar(
+    modifier:Modifier = Modifier,
+    dayWeek: Days,
+    dayMonth: Int,
+    month: Months,
+    year: Int
+) {
+    //val calendar = Calendar.getInstance()
+    //val dayWeek = Days.values()[calendar.get(Calendar.DAY_OF_WEEK) - 1]
+    //val dayMonth = calendar.get(Calendar.DAY_OF_MONTH)
+    //val month = Months.values()[calendar.get(Calendar.MONTH)]
+    //val year = calendar.get(Calendar.YEAR)
+
+    Row(
+        modifier = modifier,
+        verticalAlignment = Alignment.CenterVertically,
+        horizontalArrangement = Arrangement.SpaceBetween
+    ){
+        Row(
+            modifier = Modifier.fillMaxWidth(.27f),
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.SpaceBetween
+        ) {
+            Text(
+                text = dayMonth.toString(),
+                fontFamily = AppFontTypography,
+                fontWeight = FontWeight.W400,
+                fontSize = 55.sp
+            )
+            Spacer(modifier = Modifier.width(8.dp))
+            Column(
+                verticalArrangement = Arrangement.SpaceBetween
+            ) {
+                Text(
+                    text = month.toString(),
+                    fontFamily = AppFontTypography,
+                    fontWeight = FontWeight.W400,
+                    fontSize = 16.sp
+                )
+                Text(
+                    text = year.toString(),
+                    fontFamily = AppFontTypography,
+                    fontWeight = FontWeight.Light,
+                    fontSize = 16.sp
+                )
+            }
+        }
+        Text(
+            text = dayWeek.toString(),
+            fontFamily = AppFontTypography,
+            fontWeight = FontWeight.Normal,
+            fontSize = 18.sp
         )
     }
 }
@@ -170,23 +265,6 @@ fun FAB( onClick: () -> Unit ) {
 }
 
 @Composable
-fun TopAppBar() {
-    CenterAlignedTopAppBar(
-        title = {
-            Text(
-                text = "ToDo",
-                fontWeight = FontWeight.Bold,
-                fontFamily = AppFontTypography,
-                color = MaterialTheme.colorScheme.background
-            )
-        },
-        colors = TopAppBarDefaults.centerAlignedTopAppBarColors(
-            containerColor = MaterialTheme.colorScheme.primary
-        )
-    )
-}
-
-@Composable
 fun AddEditTodo(
     state: TodosUiState,
     paddingValues: PaddingValues,
@@ -197,7 +275,6 @@ fun AddEditTodo(
 ) {
     val focusManager = LocalFocusManager.current
     val focusRequester = remember { FocusRequester() }
-    val text = viewModel.description
 
     Column {
         AnimatedVisibility(
@@ -213,8 +290,9 @@ fun AddEditTodo(
                         top = paddingValues.calculateTopPadding(),
                         start = paddingValues.calculateStartPadding(LayoutDirection.Ltr),
                         end = paddingValues.calculateEndPadding(LayoutDirection.Ltr),
-                        bottom = 20.dp
+                        bottom = 15.dp
                     )
+                    .imePadding()
                     .clickable(interactionSource = interactionSource, indication = null) {
                         if (viewModel.description.isNotBlank()) {
                             viewModel.onEvent(
@@ -228,7 +306,7 @@ fun AddEditTodo(
                         }
                         viewModel.onEvent(TodosUiEvent.OnFocusList)
                     },
-                contentAlignment = Alignment.BottomCenter,
+                contentAlignment = Alignment.BottomCenter
             ) {
                 Column(
                     horizontalAlignment = Alignment.CenterHorizontally
@@ -296,32 +374,30 @@ fun AddEditTodo(
                             )
                         }
 
-                        Spacer(modifier = Modifier.width(20.dp))
+                        if(deleteEnabled){
+                            Spacer(modifier = Modifier.width(20.dp))
 
-                        Button(
-                            onClick = {
-                                snackbarHostState.currentSnackbarData?.dismiss()
-                                viewModel.onEvent(TodosUiEvent.OnDeleteTodoClick(viewModel.todo!!))
-                            },
-                            colors = ButtonDefaults.buttonColors(
-                                containerColor = MaterialTheme.colorScheme.inversePrimary
-                            ),
-                            enabled = deleteEnabled
-                        ) {
-                            Text(
-                                text = "Delete",
-                                fontFamily = AppFontTypography
-                            )
+                            Button(
+                                onClick = {
+                                    snackbarHostState.currentSnackbarData?.dismiss()
+                                    viewModel.onEvent(TodosUiEvent.OnDeleteTodoClick(viewModel.todo!!))
+                                },
+                                colors = ButtonDefaults.buttonColors(
+                                    containerColor = MaterialTheme.colorScheme.inversePrimary
+                                ),
+                                //enabled = deleteEnabled
+                            ) {
+                                Text(
+                                    text = "Delete",
+                                    fontFamily = AppFontTypography
+                                )
+                            }
                         }
                     }
                 }
             }
         }
     }
-}
-
-enum class Keyboard {
-    Opened, Closed
 }
 
 @Composable
@@ -350,27 +426,23 @@ fun keyboardAsState(): State<Keyboard> {
     return keyboardState
 }
 
-enum class CursorSelectionBehaviour {
-    START, END, SELECT_ALL
-}
-
 @Composable
-fun AutofocusTextFieldExample(
-    initValue: String,
-    behaviour: CursorSelectionBehaviour = CursorSelectionBehaviour.END
-) {
-    var tfv by remember {
-        val selection = TextRange(initValue.length)
-        val textFieldValue = TextFieldValue(text = initValue, selection = selection)
-        mutableStateOf(textFieldValue)
-    }
-    val focusRequester = remember { FocusRequester.Default }
-    TextField(
-        modifier = Modifier.focusRequester(focusRequester),
-        value = tfv,
-        onValueChange = { tfv = it }
-    )
-    LaunchedEffect(Unit) {
-        focusRequester.requestFocus()
-    }
+fun Calendar() {
+    // Fetching the Local Context
+    val mContext = LocalContext.current
+
+    // Declaring integer values
+    // for year, month and day
+    val mYear: Int
+    val mMonth: Int
+    val mDay: Int
+
+    // Initializing a Calendar
+    val mCalendar = Calendar.getInstance()
+
+    // Fetching current year, month and day
+    mYear = mCalendar.get(Calendar.YEAR)
+    mMonth = mCalendar.get(Calendar.MONTH)
+    mDay = mCalendar.get(Calendar.DAY_OF_MONTH)
+
 }

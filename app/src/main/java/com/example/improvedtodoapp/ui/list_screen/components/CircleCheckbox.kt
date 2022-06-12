@@ -1,5 +1,6 @@
 package com.example.improvedtodoapp.ui.list_screen.components
 
+import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.wrapContentSize
 import androidx.compose.foundation.shape.CircleShape
@@ -21,7 +22,7 @@ fun CircleCheckbox(selected: Boolean, enabled: Boolean = true, onChecked: () -> 
     val color = MaterialTheme.colorScheme
     val imageVector = if (selected) Icons.Rounded.Check else Icons.Outlined.Circle
     val background = if (selected) color.primary else Color.Transparent
-    val tint = if (selected) Color.White else Color.Black
+    val tint = if (selected) Color.White else { if(isSystemInDarkTheme()) Color.White else Color.Black}
 
     IconButton(
         onClick = onChecked,
@@ -35,7 +36,7 @@ fun CircleCheckbox(selected: Boolean, enabled: Boolean = true, onChecked: () -> 
             Icon(
                 imageVector = imageVector,
                 tint = tint,
-                modifier = Modifier.size(28.dp),
+                modifier = Modifier.size(32.dp),
                 contentDescription = "checkbox"
             )
         }

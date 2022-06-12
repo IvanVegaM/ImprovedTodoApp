@@ -9,12 +9,15 @@ import androidx.compose.ui.text.input.TextFieldValue
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.example.improvedtodoapp.model.Todo
+import com.example.improvedtodoapp.model.classes.Days
+import com.example.improvedtodoapp.model.classes.Months
 import com.example.improvedtodoapp.repository.TodoRepository
 import com.example.improvedtodoapp.util.UiEvent
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.channels.Channel
 import kotlinx.coroutines.flow.receiveAsFlow
 import kotlinx.coroutines.launch
+import java.util.*
 import javax.inject.Inject
 
 @HiltViewModel
@@ -45,6 +48,12 @@ class TodosViewModel @Inject constructor(
 
     var tfv by mutableStateOf( TextFieldValue() )
         private set
+
+    var calendar: Calendar = Calendar.getInstance()
+    val dayWeek = calendar.get(Calendar.DAY_OF_WEEK)
+    val dayMonth = calendar.get(Calendar.DAY_OF_MONTH)
+    val month = calendar.get(Calendar.MONTH)
+    val year = calendar.get(Calendar.YEAR)
 
     fun onEvent(event: TodosUiEvent){
         when(event){
